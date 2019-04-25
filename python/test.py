@@ -1,7 +1,7 @@
 
 import numpy as np
 import cv2 as cv
-im = cv.imread('img/standardleaves/1.jpg')
+im = cv.imread('img/standardleaves/6.jpg')
 
 im = cv.blur(im, (8, 8))
 
