@@ -6,6 +6,8 @@ import seaborn as sns
 from scipy import misc
 from scipy import ndimage
 from scipy import signal
+import matplotlib.cm as cm
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def togray(color_image):
@@ -34,7 +36,7 @@ def findcountour(image):
     contour = [x for x in contours_list if len(x) == max(contours_lengths)]
     coutour_img = cv.drawContours(blank_img, contour, -1, (255, 255, 255), 3)
     coutour_img = cv.cvtColor(coutour_img, cv.COLOR_BGR2GRAY)
-    return cv.blur(coutour_img, (40, 40))
+    return cv.blur(coutour_img, (30, 30))
 
 
 def applymask(image, mask):
@@ -54,32 +56,53 @@ def loadimg(number):
     return cv.imread('img/standardleaves/'+str(number)+'.jpg')
 
 def plotheatmap(image):
-    ax = sns.heatmap(image, center=140)
+    ax = sns.heatmap(image, center=90)
     plt.show()
     return
 
+def surface_plot (matrix):
+    lena = misc.imresize(coutour_only, 0.08, interp='cubic')
+    xx, yy = np.mgrid[0:lena.shape[0], 0:lena.shape[1]]
+    # create the figure
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot_surface(xx, yy, lena, rstride=1, cstride=1, cmap=plt.cm.jet,
+                    linewidth=0)
+    # show it
+    plt.show()
+
+
+def bump_funcion(x, y ,centerx, centery, radius, width):
+    dist = np.sqrt(np.power(x - centerx, 2) + np.power(y - centery, 2))
+    pow = - np.power(dist-radius, 2) / (2 * width)
+    return np.e.__pow__(pow)
+
+
+def gaussian_density_estimator_part(xval, yval, bandwidth, n):
+    pow = -0.5 * np.power(((xval-yval)/bandwidth), 2)
+    return np.e.__pow__(pow)/n
+
+
 start = time.time()
 
-org_image = togray(loadimg(3))
-denoised_image = denoisemedian(org_image, 3)
-denoised_image = signal.wiener(org_image, 7, 2)
+org_image = togray(loadimg(6))
+#denoised_image = denoisemedian(org_image, 3)
+denoised_image = signal.wiener(org_image,9,3)
 
-#mask = findcountour(denoised_image)
-#coutour_only = applymask(denoised_image, mask)
+mask = findcountour(org_image)
+coutour_only = applymask(denoised_image, mask)
+coutour_only = coutour_only * -1
+coutour_only = coutour_only - coutour_only.min()
+
+surface_plot(coutour_only)
 #plotheatmap(coutour_only)
 
-denoised_image -= denoised_image.min()
-denoised_image *= 255/denoised_image.max()
-denoised_image = np.uint8(denoised_image)
-print(denoised_image.min())
-print(denoised_image.max())
-print(denoised_image.shape)
-print(denoised_image[555][555])
 
 end = time.time()
 print(end - start)
 
-showimg(resize(denoised_image, 0.6))
+
+#showimg(resize(denoised_image, 0.6))
 
 
 
