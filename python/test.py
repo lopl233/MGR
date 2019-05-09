@@ -5,6 +5,7 @@ import cv2 as cv
 import seaborn as sns
 from scipy import misc
 from scipy import ndimage
+from functools import lru_cache
 from scipy import signal
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -55,13 +56,14 @@ def showimg(image):
 def loadimg(number):
     return cv.imread('img/standardleaves/'+str(number)+'.jpg')
 
-def plotheatmap(image):
-    ax = sns.heatmap(image, center=90)
+def plotheatmap(image, centr):
+    ax = sns.heatmap(image, center=centr)
+    #ax = sns.heatmap(image)
     plt.show()
     return
 
 def surface_plot (matrix):
-    lena = misc.imresize(coutour_only, 0.08, interp='cubic')
+    lena = misc.imresize(matrix, 0.08, interp='cubic')
     xx, yy = np.mgrid[0:lena.shape[0], 0:lena.shape[1]]
     # create the figure
     fig = plt.figure()
@@ -74,35 +76,82 @@ def surface_plot (matrix):
 
 def bump_funcion(x, y ,centerx, centery, radius, width):
     dist = np.sqrt(np.power(x - centerx, 2) + np.power(y - centery, 2))
-    pow = - np.power(dist-radius, 2) / (2 * width)
-    return np.e.__pow__(pow)
+    pow = - np.power(dist-radius, 2) / (2 * np.power(width,2))
+    return np.power(np.e, pow)
 
-
+@lru_cache(maxsize=999999999)
 def gaussian_density_estimator_part(xval, yval, bandwidth, n):
     pow = -0.5 * np.power(((xval-yval)/bandwidth), 2)
-    return np.e.__pow__(pow)/n
+    return np.power(np.e, pow)/n
+
+
+def bump_image(image, radius, width):
+    bumped_img = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+    for x in range(denoised_image.shape[0]):
+        for y in range(denoised_image.shape[1]):
+            bumped_img[x][y] = denoised_image[x][y] * bump_funcion(x, y, (image.shape[0]) / 2,
+                                                                   (image.shape[1]) / 2, radius, width)
+    return bumped_img
+
+
+def rescale_matrix(matrix):
+    matrix = matrix - matrix.min()
+    return matrix.max() - matrix
+
+
+def kernel_for_pixel(matrix, x, y, kernel_size):
+    x_start = max(x - kernel_size, 0)
+    x_end = min(x + kernel_size + 1, matrix.shape[0])
+
+    y_start = max(y - kernel_size, 0)
+    y_end = min(y + kernel_size +1, matrix.shape[1])
+
+    return matrix[x_start:x_end, y_start:y_end]
+
+
+def compute_gde_single_pixel(matrix, x, y, kernel_size, bandwidth):
+    kernel = kernel_for_pixel(matrix, x, y, kernel_size)
+    kernel = kernel.ravel()
+    size = len(kernel)
+    x_val = matrix[x][y]
+    return sum([gaussian_density_estimator_part(x_val, x, bandwidth, size) for x in kernel])
+
+
+def gde(matrix, kernel_size, bandwidth):
+    gde_image = np.zeros((matrix.shape[0], matrix.shape[1]))
+
+    for x in range(matrix.shape[0]):
+        for y in range(matrix.shape[1]):
+            print(x, y)
+            gde_image[x][y] = compute_gde_single_pixel(matrix, x, y , kernel_size, bandwidth)
+    return gde_image
 
 
 start = time.time()
 
-org_image = togray(loadimg(6))
-#denoised_image = denoisemedian(org_image, 3)
-denoised_image = signal.wiener(org_image,9,3)
+org_image = togray(loadimg(2))
+org_image = resize(org_image, 0.2)
 
-mask = findcountour(org_image)
-coutour_only = applymask(denoised_image, mask)
-coutour_only = coutour_only * -1
-coutour_only = coutour_only - coutour_only.min()
+#denoised_image = signal.wiener(org_image, noise=3)
+#denoised_image = rescale_matrix(denoised_image)
+denoised_image = denoisemedian(org_image, 2)
 
-surface_plot(coutour_only)
-#plotheatmap(coutour_only)
+#bumped_image = bump_image(denoised_image, 400, 35)
+
+denoised_image = 1 -denoised_image
+denoised_image[denoised_image > 0] += 600
+gde_img = gde(denoised_image, 19, 20)
+gde_img = 1 - gde_img
+gde_img = gde_img * 100000
+gde_img = gde_img - 75000
+gde_img[gde_img < 0] = 0
+plotheatmap(gde_img, 15000)
+
 
 
 end = time.time()
 print(end - start)
 
-
-#showimg(resize(denoised_image, 0.6))
 
 
 
