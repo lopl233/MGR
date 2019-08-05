@@ -6,9 +6,30 @@ import seaborn as sns
 from scipy import misc
 from scipy import ndimage
 from functools import lru_cache
+from scipy import stats
 from scipy import signal
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
+
+
+from sklearn.neighbors import KernelDensity
+
+def kde2D(x, y, bandwidth, xbins=100j, ybins=100j, **kwargs):
+    """Build 2D kernel density estimate (KDE)."""
+
+    # create grid of sample locations (default: 100x100)
+    xx, yy = np.mgrid[x.min():x.max():xbins,
+                      y.min():y.max():ybins]
+
+    xy_sample = np.vstack([yy.ravel(), xx.ravel()]).T
+    xy_train  = np.vstack([y, x]).T
+
+    kde_skl = KernelDensity(bandwidth=bandwidth, **kwargs)
+    kde_skl.fit(xy_train)
+
+    # score_samples() returns the log-likelihood of the samples
+    z = np.exp(kde_skl.score_samples(xy_sample))
+    return xx, yy, np.reshape(z, xx.shape)
 
 
 def togray(color_image):
@@ -29,15 +50,18 @@ def resize(image, factor):
     return cv.resize(image, (0, 0), fx=factor, fy=factor)
 
 
-def findcountour(image):
-    ret, thresh = cv.threshold(image, 200, 255, 0)
+def findcountour(image, block , C):
+    ret, thresh = cv.threshold(image, 240, 255, 0)
+    #return  cv.adaptiveThreshold(image, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, block, C)
+    #return cv.adaptiveThreshold(image, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, block, C)
     contours_list = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE, )[0]
     blank_img = np.zeros((image.shape[0], image.shape[1], 3), np.uint8)
     contours_lengths = [len(x) for x in contours_list]
     contour = [x for x in contours_list if len(x) == max(contours_lengths)]
+    return contour[0]
     coutour_img = cv.drawContours(blank_img, contour, -1, (255, 255, 255), 3)
     coutour_img = cv.cvtColor(coutour_img, cv.COLOR_BGR2GRAY)
-    return cv.blur(coutour_img, (30, 30))
+    return coutour_img
 
 
 def applymask(image, mask):
@@ -56,8 +80,8 @@ def showimg(image):
 def loadimg(number):
     return cv.imread('img/standardleaves/'+str(number)+'.jpg')
 
-def plotheatmap(image, centr):
-    ax = sns.heatmap(image, center=centr)
+def plotheatmap(image):
+    ax = sns.heatmap(image)
     #ax = sns.heatmap(image)
     plt.show()
     return
@@ -129,25 +153,29 @@ def gde(matrix, kernel_size, bandwidth):
 
 start = time.time()
 
-org_image = togray(loadimg(2))
-org_image = resize(org_image, 0.2)
+org_image = togray(loadimg(8))
+denoised_image = denoisemedian(org_image, 3 )
+countour = findcountour(denoised_image, 99 , 10)
 
-#denoised_image = signal.wiener(org_image, noise=3)
-#denoised_image = rescale_matrix(denoised_image)
-denoised_image = denoisemedian(org_image, 2)
+X, Y = ([], [])
 
-#bumped_image = bump_image(denoised_image, 400, 35)
+xmin, xmax = 0, org_image.shape[1]
+ymin, ymax = 0, org_image.shape[0]
 
-denoised_image = 1 -denoised_image
-denoised_image[denoised_image > 0] += 600
-gde_img = gde(denoised_image, 19, 20)
-gde_img = 1 - gde_img
-gde_img = gde_img * 100000
-gde_img = gde_img - 75000
-gde_img[gde_img < 0] = 0
-plotheatmap(gde_img, 15000)
+X =[x[0][0] for x in countour]
+Y =[x[0][1] for x in countour]
 
+# Peform the kernel density estimate
+xx, yy = np.mgrid[xmin:xmax:400j, ymin:ymax:300j]
+positions = np.vstack([xx.ravel(), yy.ravel()])
+values = np.vstack([X, Y])
+print(values)
+kernel = stats.gaussian_kde(values, bw_method= 'scott')
+f = np.reshape(kernel(positions).T, xx.shape)
 
+f = f* (500/f.max())
+#surface_plot(f)
+plotheatmap(f)
 
 end = time.time()
 print(end - start)
