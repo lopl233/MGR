@@ -1,18 +1,27 @@
-import numpy as np
-from scipy import stats
-from mayavi import mlab
+from rotate_pills import *
+import cv2 as cv
 
-mu, sigma = 0, 0.1
-x = 10*np.random.normal(mu, sigma, 5000)
-y = 10*np.random.normal(mu, sigma, 5000)
-z = 10*np.random.normal(mu, sigma, 5000)
+def crop_image(img,tol=0):
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    _, thresh = cv.threshold(gray, 1, 255, cv.THRESH_BINARY)
+    contours, hierarchy = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cnt = contours[0]
+    x, y, w, h = cv.boundingRect(cnt)
+    crop = img[y:y + h, x:x + w]
+    return crop
 
-xyz = np.vstack([x,y,z])
-kde = stats.gaussian_kde(xyz)
-density = kde(xyz)
 
-# Plot scatter with mayavi
-figure = mlab.figure('DensityPlot')
-pts = mlab.points3d(x, y, z, density, scale_mode='none', scale_factor=0.07)
-mlab.axes()
-mlab.show()
+def loadimg(number):
+    return cv.imread('img/standardleaves/'+str(number)+'.jpg')
+
+im = rotateUntilBest(loadimg(9))
+imCrop = crop_image(im)
+resizedImg = cv.resize(imCrop, (1000, 1000))
+# Display cropped image
+print("ratio")
+print(imCrop.shape[0]/imCrop.shape[1])
+
+resizedImg[resizedImg < 20] =  255
+
+cv.imshow("Image", resizedImg)
+cv.waitKey(0)
