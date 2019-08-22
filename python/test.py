@@ -7,6 +7,7 @@ from scipy import misc
 from scipy import ndimage
 from functools import lru_cache
 from scipy import stats
+from rotate_pills import *
 from scipy import signal
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -51,13 +52,15 @@ def resize(image, factor):
 
 
 def findcountour(image, block , C):
+
     ret, thresh = cv.threshold(image, 240, 255, 0)
     #return  cv.adaptiveThreshold(image, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, block, C)
     #return cv.adaptiveThreshold(image, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, block, C)
-    contours_list = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE, )[0]
+    contours_list = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_TC89_L1, )[0]
     blank_img = np.zeros((image.shape[0], image.shape[1], 3), np.uint8)
     contours_lengths = [len(x) for x in contours_list]
     contour = [x for x in contours_list if len(x) == max(contours_lengths)]
+
     return contour[0]
     coutour_img = cv.drawContours(blank_img, contour, -1, (255, 255, 255), 3)
     coutour_img = cv.cvtColor(coutour_img, cv.COLOR_BGR2GRAY)
@@ -111,9 +114,9 @@ def gaussian_density_estimator_part(xval, yval, bandwidth, n):
 
 def bump_image(image, radius, width):
     bumped_img = np.zeros((image.shape[0], image.shape[1]), np.uint8)
-    for x in range(denoised_image.shape[0]):
-        for y in range(denoised_image.shape[1]):
-            bumped_img[x][y] = denoised_image[x][y] * bump_funcion(x, y, (image.shape[0]) / 2,
+    for x in range(image.shape[0]):
+        for y in range(image.shape[1]):
+            bumped_img[x][y] = image[x][y] * bump_funcion(x, y, (image.shape[0]) / 2,
                                                                    (image.shape[1]) / 2, radius, width)
     return bumped_img
 
@@ -153,34 +156,60 @@ def gde(matrix, kernel_size, bandwidth):
 
 start = time.time()
 
-org_image = togray(loadimg(8))
+#org_image = togray(loadimg(8))
+BLUE = [0,0,0]
+org_image = rotateUntilBest(loadimg(8))
+org_image = togray(org_image)
+org_image= cv.copyMakeBorder(org_image.copy(),100,100,100,100,cv.BORDER_CONSTANT,value=BLUE)
 denoised_image = denoisemedian(org_image, 3 )
+denoised_image[denoised_image == 0] = 255
 countour = findcountour(denoised_image, 99 , 10)
 
 X, Y = ([], [])
 
-xmin, xmax = 0, org_image.shape[1]
-ymin, ymax = 0, org_image.shape[0]
+xmin, xmax = 0, denoised_image.shape[1]
+ymin, ymax = 0, denoised_image.shape[0]
 
 X =[x[0][0] for x in countour]
 Y =[x[0][1] for x in countour]
 
 # Peform the kernel density estimate
-xx, yy = np.mgrid[xmin:xmax:400j, ymin:ymax:300j]
+xx, yy = np.mgrid[xmin:xmax:300j, ymin:ymax:300j]
 positions = np.vstack([xx.ravel(), yy.ravel()])
 values = np.vstack([X, Y])
-print(values)
-kernel = stats.gaussian_kde(values, bw_method= 'scott')
+kernel = stats.gaussian_kde(values, bw_method= 'silverman')
 f = np.reshape(kernel(positions).T, xx.shape)
 
-f = f* (500/f.max())
-#surface_plot(f)
-plotheatmap(f)
+f = f * (500/f.max())
 
+#surface_plot(f)
+
+#plotheatmap(f.T)
+#f = bump_image(f,80, 20)
+
+#for x in range(0,500,50):
+#    f[f<x] = 0
+#    plotheatmap(f.T)
+
+b1 = np.zeros((300, 300), np.uint8)
+b1[b1 == 0] = 1000
+b2 = bump_image(b1,80,20)
+f = (f*b2)/1000
+
+f[f < 85] = 0
+
+f = f.astype(np.uint8)
+
+ret, thresh = cv.threshold(f, 1, 255, 0)
+contours_list = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_TC89_L1, )[0]
+print(len(contours_list))
+
+plotheatmap(b2)
+plotheatmap(f.T)
+
+print(np.array(f).shape)
 end = time.time()
 print(end - start)
-
-
 
 
 

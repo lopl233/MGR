@@ -40,4 +40,4 @@ def rotateUntilBest(image):
 		if rotated.shape[0]/rotated.shape[1] > bestImg.shape[0]/bestImg.shape[1]:
 			bestImg = rotated
 
-	return bestImg
+	return cv.resize(bestImg, (800, 800), interpolation = cv.INTER_AREA)
