@@ -3,6 +3,8 @@ import time
 import numpy as np
 import cv2 as cv
 import seaborn as sns
+import functools
+import operator
 from scipy import misc
 from scipy import ndimage
 from functools import lru_cache
@@ -113,12 +115,25 @@ def gaussian_density_estimator_part(xval, yval, bandwidth, n):
 
 
 def bump_image(image, radius, width):
-    bumped_img = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+    bumped_img = np.zeros((image.shape[0], image.shape[1]), np.uint16)
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
             bumped_img[x][y] = image[x][y] * bump_funcion(x, y, (image.shape[0]) / 2,
                                                                    (image.shape[1]) / 2, radius, width)
     return bumped_img
+
+def generate_bump_images(width, height, bump_width ,start_radius, end_radius, step):
+    radiuses = [x for x in range(start_radius,end_radius+1,step)]
+
+    images = []
+
+    for x in radiuses:
+        b1 = np.zeros((width, height), np.uint32)
+        b1[b1 == 0] = 1000
+        images.append(bump_image(b1, x, bump_width))
+
+    return images
+
 
 
 def rescale_matrix(matrix):
@@ -154,60 +169,68 @@ def gde(matrix, kernel_size, bandwidth):
     return gde_image
 
 
+
+def countObj(image):
+    f = image.astype(np.uint8)
+    ret, thresh = cv.threshold(f, 1, 255, 0)
+    del f
+    contours_list = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_TC89_L1, )[0]
+    return len(contours_list)
+
+
+def bumpedImageRetriveData(bumped_image, start_tresh, end_tresh, step):
+    results = []
+    for x in range(start_tresh, end_tresh, step):
+        bumped_image[bumped_image < x] = 0
+        results.append(countObj(bumped_image))
+
+    return results
+
+
+def generateData(org_image, bump_list):
+    org_image = rotateUntilBest(org_image)
+    org_image = cv.copyMakeBorder(org_image.copy(), 100, 100, 100, 100, cv.BORDER_CONSTANT, value=[0,0,0])
+    org_image = denoisemedian(org_image, 3)
+    org_image[org_image == 0] = 255
+
+    KDEImage = getKDEImage(org_image)
+    bumped_images = [x * KDEImage / 1000 for x in bump_list]
+
+    return [bumpedImageRetriveData(x, 10, 200, 10) for x in bumped_images]
+
+
+def getKDEImage(image):
+    countour = findcountour(togray(image), 99, 10)
+
+    X, Y = ([], [])
+
+    xmin, xmax = 0, image.shape[1]
+    ymin, ymax = 0, image.shape[0]
+
+    X = [x[0][0] for x in countour]
+    Y = [x[0][1] for x in countour]
+
+    # Peform the kernel density estimate
+    xx, yy = np.mgrid[xmin:xmax:300j, ymin:ymax:300j]
+    positions = np.vstack([xx.ravel(), yy.ravel()])
+    values = np.vstack([X, Y])
+    kernel = stats.gaussian_kde(values, bw_method='scott')
+    f = np.reshape(kernel(positions).T, xx.shape)
+    f = f * (200 / f.max())
+    return f
+
+
+
+
+
+bump_list = generate_bump_images(300,300, 20, 20, 140, 6)
 start = time.time()
 
-#org_image = togray(loadimg(8))
-BLUE = [0,0,0]
-org_image = rotateUntilBest(loadimg(8))
-org_image = togray(org_image)
-org_image= cv.copyMakeBorder(org_image.copy(),100,100,100,100,cv.BORDER_CONSTANT,value=BLUE)
-denoised_image = denoisemedian(org_image, 3 )
-denoised_image[denoised_image == 0] = 255
-countour = findcountour(denoised_image, 99 , 10)
+data = generateData(loadimg(8), bump_list)
 
-X, Y = ([], [])
-
-xmin, xmax = 0, denoised_image.shape[1]
-ymin, ymax = 0, denoised_image.shape[0]
-
-X =[x[0][0] for x in countour]
-Y =[x[0][1] for x in countour]
-
-# Peform the kernel density estimate
-xx, yy = np.mgrid[xmin:xmax:300j, ymin:ymax:300j]
-positions = np.vstack([xx.ravel(), yy.ravel()])
-values = np.vstack([X, Y])
-kernel = stats.gaussian_kde(values, bw_method= 'silverman')
-f = np.reshape(kernel(positions).T, xx.shape)
-
-f = f * (500/f.max())
-
-#surface_plot(f)
-
-#plotheatmap(f.T)
-#f = bump_image(f,80, 20)
-
-#for x in range(0,500,50):
-#    f[f<x] = 0
-#    plotheatmap(f.T)
-
-b1 = np.zeros((300, 300), np.uint8)
-b1[b1 == 0] = 1000
-b2 = bump_image(b1,80,20)
-f = (f*b2)/1000
-
-f[f < 85] = 0
-
-f = f.astype(np.uint8)
-
-ret, thresh = cv.threshold(f, 1, 255, 0)
-contours_list = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_TC89_L1, )[0]
-print(len(contours_list))
-
-plotheatmap(b2)
-plotheatmap(f.T)
-
-print(np.array(f).shape)
+data2 = functools.reduce(operator.iconcat, data, [])
+print(len(data2))
+print(data2)
 end = time.time()
 print(end - start)
 
