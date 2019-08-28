@@ -5,6 +5,7 @@ import cv2 as cv
 import seaborn as sns
 import functools
 import operator
+import pandas as pd
 from scipy import misc
 from scipy import ndimage
 from functools import lru_cache
@@ -196,7 +197,7 @@ def generateData(org_image, bump_list):
     KDEImage = getKDEImage(org_image)
     bumped_images = [x * KDEImage / 1000 for x in bump_list]
 
-    return [bumpedImageRetriveData(x, 10, 200, 10) for x in bumped_images]
+    return [bumpedImageRetriveData(x, 10, 250, 1) for x in bumped_images]
 
 
 def getKDEImage(image):
@@ -220,17 +221,94 @@ def getKDEImage(image):
     return f
 
 
+def saveToCsv(Array, filename):
+    df = pd.DataFrame(Array)
+    export_csv = df.to_csv(r'C:\Users\Awangardowy Kaloryfe\Desktop\export_dataframe.csv', index=None, header=False)
+
+
+def classify(number):
+    if number >= 1001 and number <= 1059:
+        return "pubescent bamboo"
+    if number >= 1060 and number <= 1122:
+        return "Chinese horse chestnut"
+    if number >= 1552 and number <= 1616:
+        return "Anhui Barberry"
+    if number >= 1123 and number <= 1194:
+        return "Chinese redbud"
+    if number >= 1195 and number <= 1267:
+        return "true indigo"
+    if number >=1268  and number <= 1323:
+        return "Japanese maple"
+    if number >= 1324 and number <= 1385:
+        return "Nanmu"
+    if number >= 1386 and number <= 1437:
+        return "castor aralia"
+    if number >= 1497 and number <= 1551:
+        return "Chinese cinnamon"
+    if number >= 1438 and number <= 1496:
+        return "goldenrain tree"
+    if number >= 2001 and number <= 2050:
+        return "Big-fruited Holly"
+    if number >= 2051 and number <= 2113:
+        return "Japanese cheesewood"
+    if number >= 2114 and number <= 2165:
+        return "wintersweet"
+    if number >= 2166 and number <= 2230:
+        return "camphortree"
+    if number >= 2231 and number <= 2290:
+        return "Japan Arrowwood"
+    if number >= 2291 and number <= 2346:
+        return "sweet osmanthus"
+    if number >= 2347 and number <= 2423:
+        return "deodar"
+    if number >= 2424 and number <= 2485:
+        return "ginkgo, maidenhair tree"
+    if number >= 2486 and number <= 2546:
+        return "Crape myrtle, Crepe myrtle"
+    if number >= 2547 and number <= 2612:
+        return "oleander"
+    if number >= 2616 and number <= 2675:
+        return "Sweet yew plum pine"
+    if number >= 3001 and number <= 3055:
+        return "Japanese Flowering Cherry"
+    if number >= 3056 and number <= 3110:
+        return "Glossy Privet"
+    if number >= 3111 and number <= 3175:
+        return "Chinese Toon"
+    if number >= 3176 and number <= 3229:
+        return "peach"
+    if number >= 3230 and number <= 3281:
+        return "Ford Woodlotus"
+    if number >= 3282 and number <= 3334:
+        return "trident maple"
+    if number >= 3335 and number <= 3389:
+        return "Beale's barberry"
+    if number >= 3390 and number <= 3446:
+        return "southern magnolia"
+    if number >= 3447 and number <= 3510:
+        return "Canadian poplar"
+    if number >= 3511 and number <= 3563:
+        return "Chinese tulip tree"
+    if number >= 3566 and number <= 3621:
+        return "tangerine"
+    return "NA"
 
 
 
 bump_list = generate_bump_images(300,300, 20, 20, 140, 6)
 start = time.time()
 
-data = generateData(loadimg(8), bump_list)
+datamatrix = []
 
-data2 = functools.reduce(operator.iconcat, data, [])
-print(len(data2))
-print(data2)
+for x in range(1001,1033 + 1):
+    data = generateData(loadimg(x), bump_list)
+    data2 = [functools.reduce(operator.iconcat, data, [])]
+    datamatrix.append(data2[0])
+    print(x)
+
+print(len(datamatrix))
+print(len(datamatrix[0]))
+
 end = time.time()
 print(end - start)
 
