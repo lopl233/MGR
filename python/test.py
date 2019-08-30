@@ -11,9 +11,8 @@ from scipy import ndimage
 from functools import lru_cache
 from scipy import stats
 from rotate_pills import *
-from scipy import signal
-import matplotlib.cm as cm
-from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
 
 
 from sklearn.neighbors import KernelDensity
@@ -197,7 +196,7 @@ def generateData(org_image, bump_list):
     KDEImage = getKDEImage(org_image)
     bumped_images = [x * KDEImage / 1000 for x in bump_list]
 
-    return [bumpedImageRetriveData(x, 10, 250, 1) for x in bumped_images]
+    return [bumpedImageRetriveData(x, 10, 250, 4) for x in bumped_images]
 
 
 def getKDEImage(image):
@@ -294,25 +293,105 @@ def classify(number):
     return "NA"
 
 
+start = time.time()
+bump_list = generate_bump_images(300,300, 20, 20, 140, 10)
 
-bump_list = generate_bump_images(300,300, 20, 20, 140, 6)
+print(time.time() - start)
 start = time.time()
 
-datamatrix = []
 
-for x in range(1001,1033 + 1):
-    data = generateData(loadimg(x), bump_list)
-    data2 = [functools.reduce(operator.iconcat, data, [])]
-    datamatrix.append(data2[0])
-    print(x)
-
-print(len(datamatrix))
-print(len(datamatrix[0]))
-
-end = time.time()
-print(end - start)
+"""""
+if number >= 1001 and number <= 1059:
+    return "pubescent bamboo"
+if number >= 1060 and number <= 1122:
+"""""
 
 
+trainingData = []
+testData = []
+
+labelsTraining = []
+labelsTest = []
+for x in range(1000,1020 + 1):
+    type = classify(x)
+
+    if type != 'NA':
+        data = generateData(loadimg(x), bump_list)
+        data2 = [functools.reduce(operator.iconcat, data, [])]
+        trainingData.append(data2[0])
+        labelsTraining.append(type)
+        print(x)
+
+for x in range(1060,1080 + 1):
+    type = classify(x)
+
+    if type != 'NA':
+        data = generateData(loadimg(x), bump_list)
+        data2 = [functools.reduce(operator.iconcat, data, [])]
+        trainingData.append(data2[0])
+        labelsTraining.append(type)
+        print(x)
+
+for x in range(1021, 1030 + 1):
+    type = classify(x)
+
+    if type != 'NA':
+        data = generateData(loadimg(x), bump_list)
+        data2 = [functools.reduce(operator.iconcat, data, [])]
+        testData.append(data2[0])
+        labelsTest.append(type)
+        print(x)
+
+for x in range(1081, 1100 + 1):
+    type = classify(x)
+
+    if type != 'NA':
+        data = generateData(loadimg(x), bump_list)
+        data2 = [functools.reduce(operator.iconcat, data, [])]
+        testData.append(data2[0])
+        labelsTest.append(type)
+        print(x)
+
+
+
+print(len(trainingData))
+print(len(trainingData[0]))
+
+print(time.time() - start)
+start = time.time()
+
+
+pca = PCA(n_components=5)
+principalComponentsTrain = pca.fit_transform(trainingData)
+principalComponentsTest = pca.fit(testData)
+
+print(time.time() - start)
+start = time.time()
+
+logisticRegr = LogisticRegression(solver = 'lbfgs')
+logisticRegr.fit(trainingData, labelsTraining)
+predicted = logisticRegr.predict(testData)
+
+print(time.time() - start)
+start = time.time()
+
+failed = 0
+passed = 0
+for x in range(0,len(predicted)):
+    if predicted[x] == labelsTest[x]:
+        passed = passed + 1
+    else:
+        failed = failed + 1
+
+    print(predicted[x] == labelsTest[x], end ='')
+    print(predicted[x], end = ' ')
+    print(labelsTest[x])
+
+
+print()
+print(passed)
+print(failed)
+print(passed/(passed+failed)*100)
 
 
 

@@ -1,12 +1,15 @@
-import pandas
+from sklearn.decomposition import PCA
 
 
 
-from pandas import DataFrame
 
 
-df = DataFrame([['111','222','333','444','555'],['666','777','888','999','000'],['1','2','3','4','5']])
+pca = PCA(n_components=2)
 
-export_csv = df.to_csv (r'C:\Users\Awangardowy Kaloryfe\Desktop\export_dataframe.csv', index = None, header=False)
 
-print (df)
+x = [[1,2,4],[2,7,18],[1,1,1]]
+y = [[1,1,1],[2,2,2],[3,3,3]]
+principalComponents = pca.fit_transform(x)
+principalComponents2 = pca.transform(y)
+print(principalComponents)
+print(principalComponents2)
