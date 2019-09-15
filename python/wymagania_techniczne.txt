@@ -1,0 +1,14 @@
+Wymagania techniczne
+
+Skrypty do uruchomienia wymagają zainstalowanego œrodowiska Python w wersji minimum 3.7
+Program do działania wymaga zainstalowanych pakietów:
+Scipy
+Sklearn
+Seaborn
+Matplotlib
+OpenCV
+Numpy 
+
+Program nie ma zdefiniowanych wymagań sprzetowych,
+jedynym wymaganiem jest ilość pamięci RAM odpowiedniej
+do wielkoœci zbioru danych wejściowych

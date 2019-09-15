@@ -1,0 +1,36 @@
+Rozwiązanie podzielone jest na dwa etapy:
+1. Skrypt generate_data.py
+	Skrypt ten służy do generowania danych wielowymiarowych.
+
+	Dane wejściowe:
+		Zdjêcia liœci w katalogu /img/standardleaves o nazewnictwie X.jpg, gdzie X to numer kolejnej obserwacji
+		Ze wzglêdu na ograniczie wielkości załączoników zbiór testowy nie jest załączony
+		Zbiór można samodzielnie pobrać pod adresem http://flavia.sourceforge.net/ lub https://github.com/lopl233/MGR/tree/master/python/img/standardleaves
+		W celu użycia własnego zbioru testowego wymagane jest dostosowanie nazw plików do formatu X.jpg, oraz modyfikacja
+		funkcji classify(zwracającej gatunek liścia dla obserwacji X) w celu poprawnego wygenerowania listy gatunków dla kolejnych obserwacji
+ 
+	Dane wyjściowe:
+		plik labelsTest - plik zawierający dane o gatunkach poszególnych obserwacji zbioru testowego
+		plik labelsTraining - plik zawierający dane o gatunkach poszególnych obserwacji zbioru uczącego
+		plik testClassicDims - plik zawierający dane o klasycznych cechach zbioru testowego
+		plik trainingClassicDims - plik zawierający dane o klasycznych cechach zbioru uczącego
+		plik testData - plik zawierajace dane wielowymiarowe dotyczące kształtu kolejnych obserwacji ekstraktowane za pomocą 					topologicznej analizy danych  
+		plik trainingData - plik zawierające dane wielowymiarowe dotyczące kształtu kolejnych obserwacji ekstraktowane za pomocą 				topologicznej analizy danych 
+
+	Kluczowa funkcją jest funkcja getResult(ratio) gdzie ratio to stosunek wielkoœci zbioru testowego do zbioru uczącego
+	funkcja ta generuje dane które później zostają zapisane do wyżej wymienionych plików
+
+2. Skrypt analyze.py
+	Skrypt ten służy do analizy danych wygenerowanych przez skrypt generate_data.py
+	
+	Dane wejœciowe:
+		Pliki wygenerowane przez skrypt generate_data w katologu wywoływanego skryptu
+	
+	Dane wyjœciowe:
+		Wpółczynnik dopasowania osiągniętego modelu
+		Dane o kolejnych predykcjach
+	
+	Kluczowa funkcją jest analaze_dataset przykłady wywołania w skrypcie (eksperymenty 0,1,2)
+	Podstawowym argumentem funkcji jest classifier który oczekuje na przekazanie gotowego modelu regresji do algorytmu
+	Kolejnymi argumentami są enable_clusering informujący algorytm o tym czy ma zastosować opcjonalny krok klastrowania,
+	Następnią flagą jest enable_pca decydująca o użyciu algorytmu PCA jako wstępnej obróbki danych

@@ -1,0 +1,7 @@
+Zawartość załączników:
+	Katalog MGR zawierająca kopie repozytorium z dnia 15.09.2019
+		W głównym katologu skrypty realizujące rozwiązanie
+		Katalog img/standardleaves zawierający obserwacje wymagane w celu wywołania skryptów
+
+	Plik Wymagania_techniczne.txt zawierający wymagania œrodowiska potrzebnego do uruchomienia programu
+	Plik Dokumentacja_funkcjonalna.txt dokumentacja pozwalająca na zrozumienie sposobu uruchomienia rozwiązania
