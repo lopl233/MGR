@@ -26,6 +26,7 @@ def crop_image(img,tol=0):
     crop = img[y:y + h, x:x + w]
     return crop
 
+
 def rotateUntilBest(image):
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     gray = cv.GaussianBlur(gray, (3, 3), 0)
@@ -39,7 +40,7 @@ def rotateUntilBest(image):
 
     for x in cnts:
         if len(x) > len(c):
-			c = x
+            c = x
 
     mask = np.zeros(gray.shape, dtype="uint8")
     cv.drawContours(mask, [c], -1, 255, -1)
