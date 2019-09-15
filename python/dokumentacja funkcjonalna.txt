@@ -20,6 +20,7 @@ Rozwiązanie podzielone jest na dwa etapy:
 	Kluczowa funkcją jest funkcja getResult(ratio) gdzie ratio to stosunek wielkoœci zbioru testowego do zbioru uczącego
 	funkcja ta generuje dane które później zostają zapisane do wyżej wymienionych plików
 
+
 2. Skrypt analyze.py
 	Skrypt ten służy do analizy danych wygenerowanych przez skrypt generate_data.py
 	
